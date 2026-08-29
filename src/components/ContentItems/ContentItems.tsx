@@ -25,12 +25,18 @@ export class ContentItems extends React.Component<{
 
 export interface ContentItemProps {
   item: ContentItemModel;
+  /**
+   * Whether to also render this item's descendants. Focus mode renders a single
+   * item at a time and passes false; the default document view renders the whole
+   * tree and leaves it true.
+   */
+  renderChildren?: boolean;
 }
 
 @observer
 export class ContentItem extends React.Component<ContentItemProps> {
   render() {
-    const item = this.props.item;
+    const { item, renderChildren = true } = this.props;
     let content;
     const { type } = item;
     switch (type) {
@@ -55,7 +61,7 @@ export class ContentItem extends React.Component<ContentItemProps> {
             {content}
           </Section>
         )}
-        {item.items && <ContentItems items={item.items} />}
+        {renderChildren && item.items && <ContentItems items={item.items} />}
       </>
     );
   }

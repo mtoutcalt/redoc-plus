@@ -161,6 +161,29 @@ Hides the Security panel section.
 
 Hides the request sample tab for requests with only one sample.
 
+### focusMode
+
+If set to `true`, renders only the section selected in the sidebar instead of the
+whole document.
+
+Redoc normally mounts every operation at once, so opening a large specification
+builds and retains the schema models and payload samples for the entire API
+before the reader has looked at any of it. In focus mode the sidebar selection
+drives a single rendered section, so cost tracks what is on screen rather than
+the size of the specification.
+
+Selecting an operation renders that operation. Selecting a tag renders its
+description together with a list of links to its operations; the operations
+themselves are not expanded, since a tag with hundreds of them would reintroduce
+the problem. Scroll-based sidebar highlighting is disabled in this mode, because
+only one section is mounted at a time; deep links, search, and the sidebar
+continue to work normally.
+
+See [Large specification performance](./large-spec-performance.md) for
+measurements.
+
+_Default: false_
+
 ### menuToggle
 
 If set to `true`, selecting an expanded item in the sidebar twice collapses it.
