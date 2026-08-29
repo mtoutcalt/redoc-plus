@@ -49,8 +49,11 @@
     "stats": "webpack --env production --env standalone --json --profile --mode=production > stats.json",
     "prettier": "prettier --write \"src/**/*.{ts,tsx}\"",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 1",
-    "lint": "eslint --fix 'src/**/*.{js,ts,tsx}' --cache",
+    "lint": "eslint --fix \"src/**/*.{js,ts,tsx}\" --cache",
     "benchmark": "node ./benchmark/benchmark.js",
+    "perf": "node --expose-gc node_modules/jest/bin/jest.js large-spec.perf --verbose --runInBand",
+    "stress:spec": "node scripts/generate-stress-spec.js",
+    "stress:measure": "node scripts/measure-spec-cost.js",
     "start:demo": "webpack serve --hot --config demo/webpack.config.ts --mode=development",
     "build:demo": "webpack --mode=production --config demo/webpack.config.ts",
     "publish-cdn": "scripts/publish-cdn.sh",
@@ -197,11 +200,13 @@
       "\\.d\\.ts$",
       "/benchmark/",
       "/node_modules/",
-      "src/services/__tests__/models/helpers.ts"
+      "src/services/__tests__/models/helpers.ts",
+      "src/services/__tests__/perf/measure.ts"
     ],
     "modulePathIgnorePatterns": [
       "/benchmark/",
-      "src/services/__tests__/models/helpers.ts"
+      "src/services/__tests__/models/helpers.ts",
+      "src/services/__tests__/perf/measure.ts"
     ],
     "snapshotSerializers": [
       "enzyme-to-json/serializer"

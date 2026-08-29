@@ -15,8 +15,34 @@ export function pushRef(stack: string[], ref?: string): string[] {
   return ref && stack[stack.length - 1] !== ref ? [...stack, ref] : stack;
 }
 
+/**
+ * Join a ref stack onto the current one, dropping refs already present.
+ *
+ * `refsStack` is only ever consulted two ways: `includes($ref)` for cycle
+ * detection, and a length check against MAX_DEREF_DEPTH. A repeated ref carries
+ * no information for either -- but because `mergeAllOf` stores a stack on every
+ * merged property as `x-refsStack`, and `deref` concatenates that stored stack
+ * onto the current path, stack length compounds with reference depth instead of
+ * growing with it.
+ *
+ * On a 0.3 MB spec that produced stacks over 10,000 entries deep (against a
+ * MAX_DEREF_DEPTH of 999) and allocated ~147M array entries in total, which
+ * dominated both time and heap. Deduplicating bounds a stack by the number of
+ * distinct refs in the document and leaves `includes()` answering identically.
+ */
 export function concatRefStacks(base: string[], stack?: string[]): string[] {
-  return stack ? base.concat(stack) : base;
+  if (!stack || stack.length === 0) return base;
+  if (base.length === 0) return stack;
+
+  const seen = new Set(base);
+  let result: string[] | undefined;
+  for (const ref of stack) {
+    if (seen.has(ref)) continue;
+    seen.add(ref);
+    if (result === undefined) result = base.slice();
+    result.push(ref);
+  }
+  return result === undefined ? base : result;
 }
 
 export class OpenAPIParser {

@@ -53,7 +53,20 @@ export class SchemaModel {
 
   constraints: string[];
 
-  fields?: FieldModel[];
+  /**
+   * Building the property list walks the whole reference graph: each property
+   * becomes a FieldModel, which constructs another SchemaModel, which builds its
+   * own fields, and so on. The cycle check is path-based (see `refsStack`), so a
+   * schema reachable by many distinct paths is rebuilt once per path -- the cost
+   * is exponential in reference depth rather than linear in spec size.
+   *
+   * The renderer never needs more than one level at a time: ObjectSchema renders
+   * the property rows, and Field renders a nested <Schema> only once that row is
+   * expanded. So construction is deferred until the first read of `fields`.
+   */
+  private pendingFields?: () => FieldModel[];
+  private resolvedFields?: FieldModel[];
+
   items?: SchemaModel;
 
   oneOf?: SchemaModel[];
@@ -86,6 +99,19 @@ export class SchemaModel {
   ) {
     makeObservable(this);
 
+    // Keep the lazy-expansion bookkeeping off the enumerable surface of the model.
+    // Without this, whether a snapshot contains `pendingFields: [Function]` or a
+    // materialised `resolvedFields` array would depend on whether anything had
+    // read `.fields` beforehand, making serialized output order-dependent.
+    for (const key of ['pendingFields', 'resolvedFields']) {
+      Object.defineProperty(this, key, {
+        value: undefined,
+        enumerable: false,
+        writable: true,
+        configurable: true,
+      });
+    }
+
     this.pointer = schemaOrRef.$ref || pointer || '';
 
     const { resolved, refsStack: newRefsStack } = parser.deref(schemaOrRef, refsStack, true);
@@ -98,6 +124,27 @@ export class SchemaModel {
     if (options.showExtensions) {
       this.extensions = extractExtensions(this.schema, options.showExtensions);
     }
+  }
+
+  get fields(): FieldModel[] | undefined {
+    if (this.resolvedFields === undefined && this.pendingFields !== undefined) {
+      const build = this.pendingFields;
+      // Clear first: buildFields can re-enter this getter for a self-referential
+      // schema, and we must not run the same builder twice.
+      this.pendingFields = undefined;
+      this.resolvedFields = build();
+    }
+    return this.resolvedFields;
+  }
+
+  set fields(value: FieldModel[] | undefined) {
+    this.pendingFields = undefined;
+    this.resolvedFields = value;
+  }
+
+  /** True when the property list exists but has not been materialised yet. */
+  get hasFields(): boolean {
+    return this.pendingFields !== undefined || this.resolvedFields !== undefined;
   }
 
   /**
@@ -193,10 +240,12 @@ export class SchemaModel {
     }
 
     if (this.hasType('object')) {
-      this.fields = buildFields(parser, schema, this.pointer, this.options, this.refsStack);
+      this.pendingFields = () =>
+        buildFields(parser, schema, this.pointer, this.options, this.refsStack);
     } else if (this.hasType('array')) {
       if (isArray(schema.items) || isArray(schema.prefixItems)) {
-        this.fields = buildFields(parser, schema, this.pointer, this.options, this.refsStack);
+        this.pendingFields = () =>
+          buildFields(parser, schema, this.pointer, this.options, this.refsStack);
       } else if (schema.items) {
         this.items = new SchemaModel(
           parser,

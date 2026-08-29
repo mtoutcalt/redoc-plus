@@ -8,6 +8,7 @@ import { AppStore } from '../../services';
 import { ApiInfo } from '../ApiInfo/';
 import { ApiLogo } from '../ApiLogo/ApiLogo';
 import { ContentItems } from '../ContentItems/ContentItems';
+import { FocusedContent } from '../ContentItems/FocusedContent';
 import { SideMenu } from '../SideMenu/SideMenu';
 import { StickyResponsiveSidebar } from '../StickySidebar/StickyResponsiveSidebar';
 import { ApiContentWrap, BackgroundStub, RedocWrap } from './styled.elements';
@@ -56,8 +57,17 @@ export class Redoc extends React.Component<RedocProps> {
                 <SideMenu menu={menu} />
               </StickyResponsiveSidebar>
               <ApiContentWrap className="api-content">
-                <ApiInfo store={store} />
-                <ContentItems items={menu.items as any} />
+                {options.focusMode ? (
+                  // One section at a time. FocusedContent owns the ApiInfo
+                  // landing state too, since in focus mode the overview is
+                  // itself a destination rather than a permanent header.
+                  <FocusedContent store={store} />
+                ) : (
+                  <>
+                    <ApiInfo store={store} />
+                    <ContentItems items={menu.items as any} />
+                  </>
+                )}
               </ApiContentWrap>
               <BackgroundStub />
             </RedocWrap>

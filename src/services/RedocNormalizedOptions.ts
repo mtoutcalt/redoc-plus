@@ -39,6 +39,16 @@ export interface RedocRawOptions {
   hideSingleRequestSampleTab?: boolean | string;
   hideRequestPayloadSample?: boolean;
   menuToggle?: boolean | string;
+  /**
+   * Render only the selected menu item instead of the whole document.
+   *
+   * Redoc normally renders every operation into the DOM at once, which on a
+   * large spec means building -- and retaining -- models and payload samples for
+   * the entire API before the reader has looked at any of it. In focus mode the
+   * menu selection drives a single rendered section, so cost tracks what is on
+   * screen rather than the size of the document.
+   */
+  focusMode?: boolean | string;
   jsonSampleExpandLevel?: number | string | 'all'; // remove in next major release
   jsonSamplesExpandLevel?: number | string | 'all';
   hideSchemaTitles?: boolean | string;
@@ -249,6 +259,7 @@ export class RedocNormalizedOptions {
   hideSingleRequestSampleTab: boolean;
   hideRequestPayloadSample: boolean;
   menuToggle: boolean;
+  focusMode: boolean;
   jsonSamplesExpandLevel: number;
   enumSkipQuotes: boolean;
   hideSchemaTitles: boolean;
@@ -326,6 +337,7 @@ export class RedocNormalizedOptions {
     this.hideSingleRequestSampleTab = argValueToBoolean(raw.hideSingleRequestSampleTab);
     this.hideRequestPayloadSample = argValueToBoolean(raw.hideRequestPayloadSample);
     this.menuToggle = argValueToBoolean(raw.menuToggle, true);
+    this.focusMode = argValueToBoolean(raw.focusMode);
     this.jsonSamplesExpandLevel = RedocNormalizedOptions.normalizeJsonSampleExpandLevel(
       raw.jsonSamplesExpandLevel || raw.jsonSampleExpandLevel,
     );

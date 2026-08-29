@@ -6,6 +6,7 @@ import { history as historyInst, HistoryService } from './HistoryService';
 import { GROUP_DEPTH } from './MenuBuilder';
 
 import type { SpecStore } from './models';
+import type { RedocNormalizedOptions } from './RedocNormalizedOptions';
 import type { ScrollService } from './ScrollService';
 import type { IMenuItem } from './types';
 
@@ -49,14 +50,25 @@ export class MenuStore {
   private _unsubscribe: () => void;
   private _hashUnsubscribe: () => void;
 
+  /** When true, only the active item is rendered, so scroll spy is disabled. */
+  private readonly focusMode: boolean;
+
   /**
    *
    * @param spec [SpecStore](#SpecStore) which contains page content structure
    * @param scroll scroll service instance used by this menu
+   * @param history history service used to sync the location hash
+   * @param options normalized options; only `focusMode` is consulted
    */
-  constructor(spec: SpecStore, public scroll: ScrollService, public history: HistoryService) {
+  constructor(
+    spec: SpecStore,
+    public scroll: ScrollService,
+    public history: HistoryService,
+    options?: RedocNormalizedOptions,
+  ) {
     makeObservable(this);
 
+    this.focusMode = !!options?.focusMode;
     this.items = spec.contentItems;
 
     this.flatItems = flattenByProp(this.items || [], 'items');
@@ -66,7 +78,12 @@ export class MenuStore {
   }
 
   subscribe() {
-    this._unsubscribe = this.scroll.subscribe(this.updateOnScroll);
+    // In focus mode a single section is mounted at a time, so there is nothing
+    // for scroll spy to track -- and letting it run would fight the menu by
+    // reactivating whichever item happens to be on screen.
+    if (!this.focusMode) {
+      this._unsubscribe = this.scroll.subscribe(this.updateOnScroll);
+    }
     this._hashUnsubscribe = this.history.subscribe(this.updateOnHistory);
   }
 
@@ -248,11 +265,18 @@ export class MenuStore {
    * scrolls to active section
    */
   scrollToActive(): void {
+    if (this.focusMode) {
+      // The section being activated has not rendered yet -- activation is what
+      // causes it to render -- so there is no element to scroll to. Selecting a
+      // menu item replaces the whole content pane, so go to the top of it.
+      this.scroll.scrollToTop();
+      return;
+    }
     this.scroll.scrollIntoView(this.getElementAt(this.activeItemIdx));
   }
 
   dispose() {
-    this._unsubscribe();
+    this._unsubscribe?.();
     this._hashUnsubscribe();
   }
 }

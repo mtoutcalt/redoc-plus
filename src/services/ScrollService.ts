@@ -76,6 +76,22 @@ export class ScrollService {
     this.scrollIntoView(element);
   }
 
+  /**
+   * Jump to the top of the scroll parent. Used by focus mode, where selecting a
+   * menu item replaces the content pane rather than scrolling within it, so
+   * there is no target element to scroll to.
+   */
+  scrollToTop() {
+    if (!this._scrollParent) {
+      return;
+    }
+    if (typeof HTMLElement !== 'undefined' && this._scrollParent instanceof HTMLElement) {
+      this._scrollParent.scrollTop = 0;
+    } else {
+      (this._scrollParent as Window).scrollTo(0, 0);
+    }
+  }
+
   @bind
   @Throttle(100)
   handleScroll() {
