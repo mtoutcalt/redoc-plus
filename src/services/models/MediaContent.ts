@@ -53,6 +53,9 @@ export class MediaContentModel {
   }
 
   get hasSample(): boolean {
-    return this.mediaTypes.filter(mime => !!mime.examples).length > 0;
+    // Deliberately `hasExamples` rather than `!!mime.examples`: this is called
+    // during render for every operation, and reading `examples` would force
+    // payload-sample generation for the whole spec just to answer a yes/no.
+    return this.mediaTypes.some(mime => mime.hasExamples);
   }
 }
